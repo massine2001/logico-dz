@@ -1,0 +1,13 @@
+# Dépendances
+/node_modules
+
+# Fichiers de build
+/dist
+/build
+
+# Fichiers de configuration locaux
+.env
+
+# Fichiers de cache
+.npm
+.cache
