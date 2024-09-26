@@ -1,26 +1,25 @@
-// pages/room.js
 import { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
+import './Room.css';  // Assurez-vous d'avoir un fichier CSS séparé
+
+let socket;  // Éviter de recréer des instances socket
 
 export default function Room() {
-  const socket = io('https://socket-production-3512.up.railway.app/');
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
-  const { id: roomId } = router.query;  // Récupère l'ID de la réunion depuis l'URL
-  const videoRef = useRef();  // Vidéo locale
-  const peerVideoRef = useRef();  // Vidéo du peer distant
-  const [peerId, setPeerId] = useState(null);  // ID PeerJS local
-  const peerRef = useRef(null);  // Référence pour PeerJS
+  const { id: roomId } = router.query;
+  const videoRef = useRef();
+  const peerVideoRef = useRef();
+  const [peerId, setPeerId] = useState(null);
+  const peerRef = useRef(null);
+  const messageEndRef = useRef(null); // Référence pour autoscroll
 
   useEffect(() => {
     if (roomId) {
-      // Initialiser Socket.IO
       socketInitializer();
-
-      // Initialiser PeerJS
       peerInitializer();
 
       return () => {
@@ -30,15 +29,22 @@ export default function Room() {
   }, [roomId]);
 
   const socketInitializer = () => {
-    // Rejoindre la salle via Socket.IO, en incluant le peerId quand il est défini
+    if (!socket) {
+      socket = io('https://socket-production-3512.up.railway.app/');
+    }
+
     socket.on('user-connected', (userId) => {
       console.log(`Utilisateur connecté: ${userId}`);
       if (peerRef.current && videoRef.current) {
-        const call = peerRef.current.call(userId, videoRef.current.srcObject);  // Appel vers l'autre utilisateur
+        const call = peerRef.current.call(userId, videoRef.current.srcObject);
         call.on('stream', (remoteStream) => {
-          peerVideoRef.current.srcObject = remoteStream;  // Afficher le flux vidéo de l'autre utilisateur
+          peerVideoRef.current.srcObject = remoteStream;
         });
       }
+    });
+
+    socket.on('receiveMessage', (message) => {
+      setMessages((prev) => [...prev, message]);
     });
 
     socket.on('user-disconnected', (userId) => {
@@ -52,17 +58,15 @@ export default function Room() {
 
     peer.on('open', (id) => {
       setPeerId(id);
-      socket.emit('join-room', roomId, id);  // Envoyer peerId lors de la connexion à la salle
+      socket.emit('join-room', roomId, id);
 
-      // Demander la permission d'utiliser la caméra et le micro
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-        videoRef.current.srcObject = stream;  // Afficher la vidéo locale
+        videoRef.current.srcObject = stream;
 
-        // Recevoir l'appel d'un autre utilisateur
         peer.on('call', (call) => {
-          call.answer(stream);  // Répondre à l'appel avec le flux local
+          call.answer(stream);
           call.on('stream', (remoteStream) => {
-            peerVideoRef.current.srcObject = remoteStream;  // Afficher le flux de l'autre utilisateur
+            peerVideoRef.current.srcObject = remoteStream;
           });
         });
       });
@@ -70,33 +74,50 @@ export default function Room() {
   };
 
   const sendMessage = () => {
-    socket.emit('sendMessage', { roomId, text: newMessage });
-    setNewMessage('');
+    if (newMessage.trim() !== '') {
+      const message = { roomId, text: newMessage, timestamp: new Date() };
+      socket.emit('sendMessage', message);
+      setMessages((prev) => [...prev, message]);
+      setNewMessage('');
+    }
   };
 
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
-    <div>
+    <div className="room-container">
       <h1>Réunion {roomId}</h1>
 
-      {/* Section vidéo */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <video ref={videoRef} autoPlay style={{ width: '45%' }} />
-        <video ref={peerVideoRef} autoPlay style={{ width: '45%' }} />
+      <div className="video-section">
+        <video ref={videoRef} autoPlay className="local-video" />
+        <video ref={peerVideoRef} autoPlay className="peer-video" />
       </div>
 
-      {/* Chat en temps réel */}
-      <ul>
-        {messages.map((msg, index) => (
-          <li key={index}>{msg.text}</li>
-        ))}
-      </ul>
-
-      <input
-        type="text"
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-      />
-      <button onClick={sendMessage}>Envoyer</button>
+      <div className="chat-section">
+        <ul className="chat-messages">
+          {messages.map((msg, index) => (
+            <li key={index} className="message-bubble">
+              <span>{msg.text}</span>
+              <small>{new Date(msg.timestamp).toLocaleTimeString()}</small>
+            </li>
+          ))}
+          <div ref={messageEndRef} />
+        </ul>
+        <div className="message-input-container">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            className="message-input"
+            placeholder="Tapez votre message..."
+          />
+          <button onClick={sendMessage} className="send-button">
+            Envoyer
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,12 @@
-// pages/index.js
 import { useState, useEffect } from 'react';
 import { supabase } from '../components/supabaseClient';
 import { useRouter } from 'next/router';
+import styles from '../styles/Home.module.css'; // Importation du fichier CSS
 
 export default function Home() {
   const [rooms, setRooms] = useState([]);
   const router = useRouter();
 
-  // Charger les réunions depuis Supabase
   useEffect(() => {
     fetchRooms();
   }, []);
@@ -26,21 +25,21 @@ export default function Home() {
     if (error) {
       console.error('Erreur lors de la création de la réunion:', error);
     } else {
-      router.push(`/room/${data[0].id}`); // Rediriger vers la réunion créée
+      router.push(`/room/${data[0].id}`);
     }
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       <h1>Réunions en cours</h1>
-      <button onClick={createRoom}>Créer une nouvelle réunion</button>
-      <ul>
+      <button className={styles.createRoomButton} onClick={createRoom}>Créer une nouvelle réunion</button>
+      <div className={styles.roomList}>
         {rooms.map((room) => (
-          <li key={room.id}>
-            <a href={`/room/${room.id}`}>Rejoindre la réunion {room.id}</a>
-          </li>
+          <div key={room.id} className={styles.roomCard}>
+            <a href={`/room/${room.id}`} className={styles.roomLink}>Rejoindre la réunion {room.id}</a>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
