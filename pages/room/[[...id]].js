@@ -1,8 +1,8 @@
+// pages/room.js
 import { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
-
 
 export default function Room() {
   const socket = io('https://socket-production-3512.up.railway.app/');
@@ -13,28 +13,40 @@ export default function Room() {
   const videoRef = useRef();
   const peerVideoRef = useRef();
   const [peerId, setPeerId] = useState(null);
+  const peerRef = useRef(null); // Utiliser un ref pour peer
 
   useEffect(() => {
-    // Initialiser Socket.IO
-    socketInitializer();
+    if (roomId) {
+      // Initialiser Socket.IO
+      socketInitializer();
 
-    // Initialiser PeerJS
-    peerInitializer();
+      // Initialiser PeerJS
+      peerInitializer();
 
-    return () => {
-      if (socket) socket.disconnect();
-    };
+      return () => {
+        if (socket) socket.disconnect();
+      };
+    }
   }, [roomId]);
 
-  const socketInitializer = async () => {
-   
-    socket.emit('joinRoom', roomId);  // Rejoindre la réunion via Socket.IO
+  const socketInitializer = () => {
+    // Rejoindre la réunion via Socket.IO
+    socket.emit('join-room', roomId, peerId); 
 
     socket.on('receiveMessage', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    // Attacher l'événement 'user-disconnected' uniquement lorsque socket est initialisé
+    socket.on('user-connected', (userId) => {
+      console.log(`Utilisateur connecté: ${userId}`);
+      if (peerRef.current && videoRef.current) {
+        const call = peerRef.current.call(userId, videoRef.current.srcObject);
+        call.on('stream', (remoteStream) => {
+          peerVideoRef.current.srcObject = remoteStream;
+        });
+      }
+    });
+
     socket.on('user-disconnected', (userId) => {
       console.log(`Utilisateur déconnecté: ${userId}`);
     });
@@ -42,6 +54,7 @@ export default function Room() {
 
   const peerInitializer = () => {
     const peer = new Peer();
+    peerRef.current = peer;
 
     peer.on('open', (id) => {
       setPeerId(id);
@@ -49,14 +62,6 @@ export default function Room() {
       // Demander la permission d'utiliser la caméra et le micro
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         videoRef.current.srcObject = stream;
-
-        // Envoyer le flux vidéo/audio à un autre utilisateur
-        socket.on('join-room', (userId) => {
-          const call = peer.call(userId, stream);
-          call.on('stream', (remoteStream) => {
-            peerVideoRef.current.srcObject = remoteStream;
-          });
-        });
 
         // Recevoir l'appel d'un utilisateur
         peer.on('call', (call) => {
@@ -67,15 +72,6 @@ export default function Room() {
         });
       });
     });
-
-    // Assurez-vous que 'socket' est défini avant d'écouter les événements
-    if (socket) {
-      socket.on('user-disconnected', (userId) => {
-        console.log(`Utilisateur déconnecté: ${userId}`);
-      });
-    } else {
-      console.error('Socket is not initialized yet');
-    }
   };
 
   const sendMessage = () => {
