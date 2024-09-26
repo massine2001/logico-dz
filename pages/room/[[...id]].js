@@ -3,9 +3,8 @@ import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
 
-let socket;  // Éviter de recréer des instances socket
-
 export default function Room() {
+  const socket = io('https://socket-production-3512.up.railway.app/');
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
@@ -14,7 +13,6 @@ export default function Room() {
   const peerVideoRef = useRef();
   const [peerId, setPeerId] = useState(null);
   const peerRef = useRef(null);
-  const messageEndRef = useRef(null); // Référence pour autoscroll
 
   useEffect(() => {
     if (roomId) {
@@ -28,12 +26,7 @@ export default function Room() {
   }, [roomId]);
 
   const socketInitializer = () => {
-    if (!socket) {
-      socket = io('https://socket-production-3512.up.railway.app/');
-    }
-
     socket.on('user-connected', (userId) => {
-      console.log(`Utilisateur connecté: ${userId}`);
       if (peerRef.current && videoRef.current) {
         const call = peerRef.current.call(userId, videoRef.current.srcObject);
         call.on('stream', (remoteStream) => {
@@ -42,12 +35,12 @@ export default function Room() {
       }
     });
 
-    socket.on('receiveMessage', (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
-
     socket.on('user-disconnected', (userId) => {
       console.log(`Utilisateur déconnecté: ${userId}`);
+    });
+
+    socket.on('receiveMessage', (message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
     });
   };
 
@@ -61,7 +54,6 @@ export default function Room() {
 
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         videoRef.current.srcObject = stream;
-
         peer.on('call', (call) => {
           call.answer(stream);
           call.on('stream', (remoteStream) => {
@@ -73,48 +65,34 @@ export default function Room() {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() !== '') {
-      const message = { roomId, text: newMessage, timestamp: new Date() };
-      socket.emit('sendMessage', message);
-      setMessages((prev) => [...prev, message]);
-      setNewMessage('');
-    }
+    if (newMessage.trim() === '') return;  // Évite d'envoyer des messages vides
+    socket.emit('sendMessage', { roomId, text: newMessage });
+    setMessages((prevMessages) => [...prevMessages, { text: newMessage }]);
+    setNewMessage('');
   };
 
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   return (
-    <div className="room-container">
-      <h1>Réunion {roomId}</h1>
-
-      <div className="video-section">
-        <video ref={videoRef} autoPlay className="local-video" />
-        <video ref={peerVideoRef} autoPlay className="peer-video" />
+    <div className={'container'}>
+      <div className={'videoSection'}>
+        <video ref={videoRef} autoPlay muted className={'localVideo'} />
+        <video ref={peerVideoRef} autoPlay className={'remoteVideo'} />
       </div>
-
-      <div className="chat-section">
-        <ul className="chat-messages">
-          {messages.map((msg, index) => (
-            <li key={index} className="message-bubble">
-              <span>{msg.text}</span>
-              <small>{new Date(msg.timestamp).toLocaleTimeString()}</small>
-            </li>
+      <div className={'chatSection'}>
+        <div className={'messages'}>
+          {messages.map((message, index) => (
+            <div key={index} className={'message'}>
+              {message.text}
+            </div>
           ))}
-          <div ref={messageEndRef} />
-        </ul>
-        <div className="message-input-container">
+        </div>
+        <div className={'messageInput'}>
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            className="message-input"
-            placeholder="Tapez votre message..."
+            placeholder="Tapez un message"
           />
-          <button onClick={sendMessage} className="send-button">
-            Envoyer
-          </button>
+          <button onClick={sendMessage}>Envoyer</button>
         </div>
       </div>
     </div>

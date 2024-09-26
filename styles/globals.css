@@ -53,86 +53,72 @@ footer {
   width: 100vw;
 }
 
-.room-container {
+.container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-  min-height: 100vh;
+  height: 100vh;
+}
+
+.videoSection {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.localVideo, .remoteVideo {
+  width: 48%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chatSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
 }
 
-.video-section {
-  display: flex;
-  justify-content: space-between;
-  width: 80%;
-  margin-bottom: 20px;
-}
-
-.local-video, .peer-video {
-  width: 45%;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.chat-section {
-  width: 80%;
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 10px;
+.messages {
+  flex: 1;
+  overflow-y: auto;
   padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.chat-messages {
-  list-style-type: none;
-  padding: 0;
-  height: 300px;
-  overflow-y: scroll;
+  background-color: #f0f0f0;
+  border-radius: 10px;
   margin-bottom: 10px;
 }
 
-.message-bubble {
-  background-color: #e3f2fd;
+.message {
   padding: 10px;
-  margin: 5px 0;
-  border-radius: 10px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.message-bubble small {
-  font-size: 0.75rem;
-  color: #555;
-}
-
-.message-input-container {
-  display: flex;
-}
-
-.message-input {
-  flex-grow: 1;
-  padding: 10px;
+  background-color: #0070f3;
+  color: white;
   border-radius: 5px;
-  border: 1px solid #ddd;
-  margin-right: 10px;
+  margin-bottom: 10px;
+  word-wrap: break-word;
 }
 
-.send-button {
-  background-color: #42a5f5;
+.messageInput {
+  display: flex;
+}
+
+.messageInput input {
+  flex: 1;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.messageInput button {
+  padding: 10px 20px;
+  background-color: #0070f3;
   color: white;
   border: none;
-  padding: 10px 20px;
   border-radius: 5px;
+  margin-left: 10px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
-
-.send-button:hover {
-  background-color: #1e88e5;
-}
-
 .container {
   display: flex;
   flex-direction: column;
@@ -181,4 +167,3 @@ footer {
 .roomLink:hover {
   color: #005bb5;
 }
-
