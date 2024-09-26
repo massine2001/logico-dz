@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../components/supabaseClient';
 import { useRouter } from 'next/router';
-import styles from '../styles/Home.module.css'; // Importation du fichier CSS
 
 export default function Home() {
   const [rooms, setRooms] = useState([]);

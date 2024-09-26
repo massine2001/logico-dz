@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
-import './Room.css';  // Assurez-vous d'avoir un fichier CSS séparé
 
 let socket;  // Éviter de recréer des instances socket
 
