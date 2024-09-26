@@ -3,9 +3,9 @@ import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
 
-let socket;
 
 export default function Room() {
+  const socket = io('https://socket-production-3512.up.railway.app/');
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
@@ -27,9 +27,7 @@ export default function Room() {
   }, [roomId]);
 
   const socketInitializer = async () => {
-    await fetch('/api/socket');
-    socket = io('https://socket-production-3512.up.railway.app/');
-
+   
     socket.emit('joinRoom', roomId);  // Rejoindre la réunion via Socket.IO
 
     socket.on('receiveMessage', (message) => {
