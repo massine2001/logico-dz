@@ -5,6 +5,8 @@ import { useRouter } from 'next/router';
 
 export default function Room() {
   const [connectedUsers, setConnectedUsers] = useState([]); // Utilisateurs connectés
+  const [messages, setMessages] = useState([]); // Messages de chat
+  const [newMessage, setNewMessage] = useState(''); // Nouveau message
   const videoRefs = useRef({}); // Références vidéos pour chaque utilisateur
   const localVideoRef = useRef(); // Vidéo locale
   const router = useRouter();
@@ -25,26 +27,26 @@ export default function Room() {
         // Obtenir le flux local
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
           .then((stream) => {
-            localVideoRef.current.srcObject = stream; // Afficher la vidéo locale
+            localVideoRef.current.srcObject = stream; // Assigner le flux à la vidéo locale
 
-            // Appeler les autres utilisateurs déjà connectés
+            // Appeler les utilisateurs déjà connectés
             socket.current.on('all-users', (users) => {
               users.forEach((userId) => {
-                const call = peer.current.call(userId, stream); // Appeler chaque utilisateur
+                const call = peer.current.call(userId, stream);
                 call.on('stream', (remoteStream) => {
                   if (videoRefs.current[userId]) {
-                    videoRefs.current[userId].srcObject = remoteStream; // Associer le flux reçu
+                    videoRefs.current[userId].srcObject = remoteStream;
                   }
                 });
               });
             });
 
-            // Recevoir les appels entrants et répondre avec le flux local
+            // Recevoir les appels et répondre avec le flux local
             peer.current.on('call', (call) => {
               call.answer(stream);
               call.on('stream', (remoteStream) => {
                 if (videoRefs.current[call.peer]) {
-                  videoRefs.current[call.peer].srcObject = remoteStream; // Associer le flux reçu à la vidéo de l'autre utilisateur
+                  videoRefs.current[call.peer].srcObject = remoteStream;
                 }
               });
             });
@@ -53,49 +55,80 @@ export default function Room() {
 
       // Gérer les nouveaux utilisateurs connectés
       socket.current.on('user-connected', (userId) => {
-        setConnectedUsers((prevUsers) => [...prevUsers, userId]); // Ajouter l'utilisateur connecté
+        setConnectedUsers((prevUsers) => [...prevUsers, userId]);
 
-        // Appeler l'utilisateur avec le flux local
         const call = peer.current.call(userId, localVideoRef.current.srcObject);
         call.on('stream', (remoteStream) => {
           if (videoRefs.current[userId]) {
-            videoRefs.current[userId].srcObject = remoteStream; // Afficher le flux distant
+            videoRefs.current[userId].srcObject = remoteStream;
           }
         });
       });
 
       // Gérer les déconnexions
       socket.current.on('user-disconnected', (userId) => {
-        setConnectedUsers((prevUsers) => prevUsers.filter((id) => id !== userId)); // Supprimer l'utilisateur déconnecté
+        setConnectedUsers((prevUsers) => prevUsers.filter((id) => id !== userId));
         if (videoRefs.current[userId]) {
-          videoRefs.current[userId].srcObject = null; // Arrêter l'affichage de la vidéo de l'utilisateur déconnecté
+          videoRefs.current[userId].srcObject = null;
         }
       });
 
+      // Gérer les messages de chat
+      socket.current.on('receive-message', (message) => {
+        setMessages((prevMessages) => [...prevMessages, message]);
+      });
+
       return () => {
-        socket.current.disconnect(); // Déconnecter le socket lors du démontage du composant
+        socket.current.disconnect();
       };
     }
   }, [roomId]);
 
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim()) {
+      socket.current.emit('send-message', newMessage);
+      setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: 'You' }]);
+      setNewMessage('');
+    }
+  };
+
   return (
-    <div className={"container"}>
-      <h1>Réunion {roomId}</h1>
+    <div>
+      <h1>Room {roomId}</h1>
 
-      {/* Section vidéo */}
-      <div className={"videoSection"}>
-        {/* Vidéo locale */}
-        <video ref={localVideoRef} autoPlay muted className={"localVideo"} />
+      {/* Section Vidéo */}
+      <div>
+        <video ref={localVideoRef} autoPlay muted style={{ width: '300px' }} />
 
-        {/* Vidéos des autres utilisateurs */}
         {connectedUsers.map((userId) => (
           <video
             key={userId}
-            ref={(el) => (videoRefs.current[userId] = el)} // Assigner la référence vidéo pour chaque utilisateur
+            ref={(el) => (videoRefs.current[userId] = el)}
             autoPlay
-            className={"remoteVideo"}
+            style={{ width: '300px' }}
           />
         ))}
+      </div>
+
+      {/* Section Chat */}
+      <div>
+        <div>
+          {messages.map((msg, index) => (
+            <div key={index}>
+              <strong>{msg.sender}:</strong> {msg.text}
+            </div>
+          ))}
+        </div>
+        <form onSubmit={sendMessage}>
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message"
+          />
+          <button type="submit">Send</button>
+        </form>
       </div>
     </div>
   );
