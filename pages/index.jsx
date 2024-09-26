@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../components/supabaseClient';
 import { useRouter } from 'next/router';
+import styles from './Home.module.css'; // Importer du style
 
 export default function Home() {
   const [rooms, setRooms] = useState([]);
@@ -29,16 +30,16 @@ export default function Home() {
   };
 
   return (
-    <div className={'container'}>
+    <div className={styles.container}>
       <h1>Réunions en cours</h1>
-      <button className={'createRoomButton'} onClick={createRoom}>Créer une nouvelle réunion</button>
-      <div className={'roomList'}>
+      <button onClick={createRoom} className={styles.createButton}>Créer une nouvelle réunion</button>
+      <ul className={styles.roomList}>
         {rooms.map((room) => (
-          <div key={room.id} className={'roomCard'}>
-            <a href={`/room/${room.id}`} className={'roomLink'}>Rejoindre la réunion {room.id}</a>
-          </div>
+          <li key={room.id} className={styles.roomItem}>
+            <a href={`/room/${room.id}`} className={styles.roomLink}>Rejoindre la réunion {room.id}</a>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

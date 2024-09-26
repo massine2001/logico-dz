@@ -1,121 +1,86 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Peer from 'peerjs';
 import { useRouter } from 'next/router';
 
-let socket;  // Éviter de recréer des instances socket
-
 export default function Room() {
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [connectedUsers, setConnectedUsers] = useState([]); // Utilisateurs connectés
+  const videoRefs = useRef({}); // Références vidéos pour chaque utilisateur
+  const localVideoRef = useRef(); // Vidéo locale
   const router = useRouter();
-  const { id: roomId } = router.query;
-  const videoRef = useRef();
-  const peerVideoRef = useRef();
-  const [peerId, setPeerId] = useState(null);
-  const peerRef = useRef(null);
-  const messageEndRef = useRef(null); // Référence pour autoscroll
+  const { id: roomId } = router.query; // ID de la salle
+  const socket = useRef(null);
+  const peer = useRef(null);
 
   useEffect(() => {
     if (roomId) {
-      socketInitializer();
-      peerInitializer();
+      socket.current = io('https://socket-production-3512.up.railway.app/');
+      
+      // Initialiser PeerJS
+      peer.current = new Peer();
+
+      peer.current.on('open', (id) => {
+        socket.current.emit('join-room', roomId, id); // Joindre la salle avec le PeerID
+
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+          .then((stream) => {
+            localVideoRef.current.srcObject = stream; // Afficher la vidéo locale
+
+            // Recevoir les appels entrants et répondre avec le flux local
+            peer.current.on('call', (call) => {
+              call.answer(stream);
+              call.on('stream', (remoteStream) => {
+                if (videoRefs.current[call.peer]) {
+                  videoRefs.current[call.peer].srcObject = remoteStream; // Associer le flux reçu à la vidéo de l'autre utilisateur
+                }
+              });
+            });
+          });
+      });
+
+      socket.current.on('user-connected', (userId) => {
+        setConnectedUsers((prevUsers) => [...prevUsers, userId]); // Ajouter l'utilisateur connecté
+
+        // Appeler l'utilisateur avec le flux local
+        const call = peer.current.call(userId, localVideoRef.current.srcObject);
+        call.on('stream', (remoteStream) => {
+          if (videoRefs.current[userId]) {
+            videoRefs.current[userId].srcObject = remoteStream; // Afficher le flux distant
+          }
+        });
+      });
+
+      socket.current.on('user-disconnected', (userId) => {
+        setConnectedUsers((prevUsers) => prevUsers.filter((id) => id !== userId)); // Supprimer l'utilisateur déconnecté
+        if (videoRefs.current[userId]) {
+          videoRefs.current[userId].srcObject = null; // Arrêter l'affichage de la vidéo de l'utilisateur déconnecté
+        }
+      });
 
       return () => {
-        if (socket) socket.disconnect();
+        socket.current.disconnect(); // Déconnecter le socket lors du démontage du composant
       };
     }
   }, [roomId]);
 
-  const socketInitializer = () => {
-    if (!socket) {
-      socket = io('https://socket-production-3512.up.railway.app/');
-    }
-
-    socket.on('user-connected', (userId) => {
-      console.log(`Utilisateur connecté: ${userId}`);
-      if (peerRef.current && videoRef.current) {
-        const call = peerRef.current.call(userId, videoRef.current.srcObject);
-        call.on('stream', (remoteStream) => {
-          peerVideoRef.current.srcObject = remoteStream;
-        });
-      }
-    });
-
-    socket.on('receiveMessage', (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
-
-    socket.on('user-disconnected', (userId) => {
-      console.log(`Utilisateur déconnecté: ${userId}`);
-    });
-  };
-
-  const peerInitializer = () => {
-    const peer = new Peer();
-    peerRef.current = peer;
-
-    peer.on('open', (id) => {
-      setPeerId(id);
-      socket.emit('join-room', roomId, id);
-
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-        videoRef.current.srcObject = stream;
-
-        peer.on('call', (call) => {
-          call.answer(stream);
-          call.on('stream', (remoteStream) => {
-            peerVideoRef.current.srcObject = remoteStream;
-          });
-        });
-      });
-    });
-  };
-
-  const sendMessage = () => {
-    if (newMessage.trim() !== '') {
-      const message = { roomId, text: newMessage, timestamp: new Date() };
-      socket.emit('sendMessage', message);
-      setMessages((prev) => [...prev, message]);
-      setNewMessage('');
-    }
-  };
-
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   return (
-    <div className="room-container">
+    <div className={"container"}>
       <h1>Réunion {roomId}</h1>
 
-      <div className="video-section">
-        <video ref={videoRef} autoPlay className="local-video" />
-        <video ref={peerVideoRef} autoPlay className="peer-video" />
-      </div>
+      {/* Section vidéo */}
+      <div className={"videoSection"}>
+        {/* Vidéo locale */}
+        <video ref={localVideoRef} autoPlay muted className={"localVideo"} />
 
-      <div className="chat-section">
-        <ul className="chat-messages">
-          {messages.map((msg, index) => (
-            <li key={index} className="message-bubble">
-              <span>{msg.text}</span>
-              <small>{new Date(msg.timestamp).toLocaleTimeString()}</small>
-            </li>
-          ))}
-          <div ref={messageEndRef} />
-        </ul>
-        <div className="message-input-container">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="message-input"
-            placeholder="Tapez votre message..."
+        {/* Vidéos des autres utilisateurs */}
+        {connectedUsers.map((userId) => (
+          <video
+            key={userId}
+            ref={(el) => (videoRefs.current[userId] = el)} // Assigner la référence vidéo pour chaque utilisateur
+            autoPlay
+            className={"remoteVideo"}
           />
-          <button onClick={sendMessage} className="send-button">
-            Envoyer
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );
