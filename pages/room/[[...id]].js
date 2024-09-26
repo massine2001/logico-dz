@@ -51,7 +51,7 @@ export default function Room() {
         videoRef.current.srcObject = stream;
 
         // Envoyer le flux vidéo/audio à un autre utilisateur
-        socket.on('user-connected', (userId) => {
+        socket.on('join-room', (userId) => {
           const call = peer.call(userId, stream);
           call.on('stream', (remoteStream) => {
             peerVideoRef.current.srcObject = remoteStream;
