@@ -28,7 +28,7 @@ export default function Room() {
 
   const socketInitializer = async () => {
     await fetch('/api/socket');
-    socket = io();
+    socket = io('https://socket-production-3512.up.railway.app/');
 
     socket.emit('joinRoom', roomId);  // Rejoindre la réunion via Socket.IO
 
