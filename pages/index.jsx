@@ -29,13 +29,13 @@ export default function Home() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={'container'}>
       <h1>Réunions en cours</h1>
-      <button className={styles.createRoomButton} onClick={createRoom}>Créer une nouvelle réunion</button>
-      <div className={styles.roomList}>
+      <button className={'createRoomButton'} onClick={createRoom}>Créer une nouvelle réunion</button>
+      <div className={'roomList'}>
         {rooms.map((room) => (
-          <div key={room.id} className={styles.roomCard}>
-            <a href={`/room/${room.id}`} className={styles.roomLink}>Rejoindre la réunion {room.id}</a>
+          <div key={room.id} className={'roomCard'}>
+            <a href={`/room/${room.id}`} className={'roomLink'}>Rejoindre la réunion {room.id}</a>
           </div>
         ))}
       </div>
