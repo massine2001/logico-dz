@@ -10,10 +10,10 @@ export default function Room() {
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
   const { id: roomId } = router.query;  // Récupère l'ID de la réunion depuis l'URL
-  const videoRef = useRef();
-  const peerVideoRef = useRef();
-  const [peerId, setPeerId] = useState(null);
-  const peerRef = useRef(null); // Utiliser un ref pour peer
+  const videoRef = useRef();  // Vidéo locale
+  const peerVideoRef = useRef();  // Vidéo du peer distant
+  const [peerId, setPeerId] = useState(null);  // ID PeerJS local
+  const peerRef = useRef(null);  // Référence pour PeerJS
 
   useEffect(() => {
     if (roomId) {
@@ -30,19 +30,13 @@ export default function Room() {
   }, [roomId]);
 
   const socketInitializer = () => {
-    // Rejoindre la réunion via Socket.IO
-    socket.emit('join-room', roomId, peerId); 
-
-    socket.on('receiveMessage', (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-
+    // Rejoindre la salle via Socket.IO, en incluant le peerId quand il est défini
     socket.on('user-connected', (userId) => {
       console.log(`Utilisateur connecté: ${userId}`);
       if (peerRef.current && videoRef.current) {
-        const call = peerRef.current.call(userId, videoRef.current.srcObject);
+        const call = peerRef.current.call(userId, videoRef.current.srcObject);  // Appel vers l'autre utilisateur
         call.on('stream', (remoteStream) => {
-          peerVideoRef.current.srcObject = remoteStream;
+          peerVideoRef.current.srcObject = remoteStream;  // Afficher le flux vidéo de l'autre utilisateur
         });
       }
     });
@@ -58,16 +52,17 @@ export default function Room() {
 
     peer.on('open', (id) => {
       setPeerId(id);
+      socket.emit('join-room', roomId, id);  // Envoyer peerId lors de la connexion à la salle
 
       // Demander la permission d'utiliser la caméra et le micro
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = stream;  // Afficher la vidéo locale
 
-        // Recevoir l'appel d'un utilisateur
+        // Recevoir l'appel d'un autre utilisateur
         peer.on('call', (call) => {
-          call.answer(stream); // Répondre à l'appel en envoyant le flux vidéo/audio
+          call.answer(stream);  // Répondre à l'appel avec le flux local
           call.on('stream', (remoteStream) => {
-            peerVideoRef.current.srcObject = remoteStream;
+            peerVideoRef.current.srcObject = remoteStream;  // Afficher le flux de l'autre utilisateur
           });
         });
       });
