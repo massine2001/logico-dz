@@ -80,7 +80,7 @@ export default function Room() {
 
       {/* Section vidéo */}
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <video ref={videoRef} autoPlay muted style={{ width: '45%' }} />
+        <video ref={videoRef} autoPlay style={{ width: '45%' }} />
         <video ref={peerVideoRef} autoPlay style={{ width: '45%' }} />
       </div>
 
