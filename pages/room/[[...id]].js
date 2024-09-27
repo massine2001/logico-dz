@@ -18,7 +18,7 @@ export default function Room() {
   const [peerId, setPeerId] = useState(null);
   const peerRef = useRef(null);
   const messageEndRef = useRef(null);
-  const [devices, setDevices] = useState([]);
+  const [devices, setDevices] = useState({ cameras: [], microphones: [] });
   const [selectedCamera, setSelectedCamera] = useState('');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
 
@@ -124,67 +124,35 @@ export default function Room() {
     const cameras = devices.filter(device => device.kind === 'videoinput');
     const microphones = devices.filter(device => device.kind === 'audioinput');
     setDevices({ cameras, microphones });
-    if (cameras.length > 0) setSelectedCamera(cameras[0].deviceId);
-    if (microphones.length > 0) setSelectedMicrophone(microphones[0].deviceId);
   };
-
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   return (
     <div className="room-container">
-      <h1>Réunion {roomId}</h1>
-
+      <div className="video-container">
+        <video ref={videoRef} autoPlay muted />
+        <video ref={peerVideoRef} autoPlay />
+      </div>
       <div className="controls">
-        <select onChange={(e) => setSelectedCamera(e.target.value)}>
-          {devices.cameras?.map((camera) => (
-            <option key={camera.deviceId} value={camera.deviceId}>{camera.label}</option>
-          ))}
-        </select>
-
-        <select onChange={(e) => setSelectedMicrophone(e.target.value)}>
-          {devices.microphones?.map((mic) => (
-            <option key={mic.deviceId} value={mic.deviceId}>{mic.label}</option>
-          ))}
-        </select>
-
-        <button onClick={toggleMute}>
-          {muted ? 'Activer Micro' : 'Couper Micro'}
-        </button>
-
-        <button onClick={toggleScreenShare}>
-          {sharingScreen ? 'Arrêter Partage d\'Écran' : 'Partager Écran'}
-        </button>
+        <button onClick={toggleMute}>{muted ? 'Désactiver muet' : 'Activer muet'}</button>
+        <button onClick={toggleScreenShare}>{sharingScreen ? 'Arrêter le partage' : 'Partager l\'écran'}</button>
       </div>
-
-      <div className="video-section">
-        <video ref={videoRef} autoPlay muted={muted} className="local-video" />
-        <video ref={peerVideoRef} autoPlay className="peer-video" />
-      </div>
-
-      <div className="chat-section">
-        <ul className="chat-messages">
-          {messages.map((msg, index) => (
-            <li key={index} className="message-bubble">
-              <span>{msg.text}</span>
-              <small>{new Date(msg.timestamp).toLocaleTimeString()}</small>
+      <div className="chat-container">
+        <ul>
+          {messages.map((message, index) => (
+            <li key={index}>
+              <span>{message.text}</span>
+              <br />
+              <small>{new Date(message.timestamp).toLocaleTimeString()}</small>
             </li>
           ))}
           <div ref={messageEndRef} />
         </ul>
-        <div className="message-input-container">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="message-input"
-            placeholder="Tapez votre message..."
-          />
-          <button onClick={sendMessage} className="send-button">
-            Envoyer
-          </button>
-        </div>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+        />
       </div>
     </div>
   );

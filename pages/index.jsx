@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 export default function Home() {
   const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -11,12 +12,14 @@ export default function Home() {
   }, []);
 
   const fetchRooms = async () => {
+    setLoading(true);
     const { data, error } = await supabase.from('rooms').select('*');
     if (error) {
       console.error('Erreur lors du chargement des réunions:', error);
     } else {
       setRooms(data);
     }
+    setLoading(false);
   };
 
   const createRoom = async () => {
@@ -29,16 +32,22 @@ export default function Home() {
   };
 
   return (
-    <div className={"container"}>
+    <div className="container">
       <h1>Réunions en cours</h1>
-      <button onClick={createRoom} className={"createButton"}>Créer une nouvelle réunion</button>
-      <ul className={"roomList"}>
-        {rooms.map((room) => (
-          <li key={room.id} className={"roomItem"}>
-            <a href={`/room/${room.id}`} className={"roomLink"}>Rejoindre la réunion {room.id}</a>
-          </li>
-        ))}
-      </ul>
+      <button onClick={createRoom} className="createButton" disabled={loading}>
+        {loading ? 'Création...' : 'Créer une nouvelle réunion'}
+      </button>
+      {rooms.length === 0 ? (
+        <p>Aucune réunion disponible.</p>
+      ) : (
+        <ul className="roomList">
+          {rooms.map((room) => (
+            <li key={room.id} className="roomItem">
+              <a href={`/room/${room.id}`} className="roomLink">Rejoindre la réunion {room.id}</a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
