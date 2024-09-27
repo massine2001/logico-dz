@@ -167,7 +167,6 @@ video {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   padding: 20px;
   height: 300px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
