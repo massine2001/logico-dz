@@ -196,3 +196,127 @@ footer {
   background-color: #1e88e5;
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.room-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  padding: 20px;
+}
+
+.video-container {
+  display: flex;
+  justify-content: space-around;
+  flex: 1;
+  margin-bottom: 20px;
+  background-color: #202020;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+video {
+  width: 48%;
+  max-width: 600px;
+  height: auto;
+  background-color: #000;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.controls button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.controls button:hover {
+  background-color: #0056b3;
+}
+
+.controls button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.chat-container {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  height: 300px;
+  overflow-y: auto;
+}
+
+.chat-container ul {
+  list-style: none;
+}
+
+.chat-container li {
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.chat-container li span {
+  font-weight: bold;
+}
+
+.chat-container input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.chat-container input:focus {
+  border-color: #007bff;
+}
+
+/* Responsive styling for mobile devices */
+@media screen and (max-width: 768px) {
+  .room-container {
+    padding: 10px;
+  }
+
+  .video-container {
+    flex-direction: column;
+  }
+
+  video {
+    width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+  }
+
+  .controls button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
